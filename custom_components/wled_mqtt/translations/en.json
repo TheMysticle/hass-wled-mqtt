@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add WLED MQTT Light",
+        "description": "Configure a WLED device controlled via MQTT.\n\nThe **Base Topic** is the root topic you configured in WLED's MQTT settings (e.g. `wled/kitchen`). The integration will automatically derive all sub-topics from it.",
+        "data": {
+          "device_name": "Device Name",
+          "mqtt_base_topic": "MQTT Base Topic"
+        },
+        "data_description": {
+          "device_name": "Friendly name shown in Home Assistant (e.g. Kitchen WLED)",
+          "mqtt_base_topic": "WLED MQTT base topic, e.g. wled/kitchen"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This WLED MQTT device is already configured."
+    },
+    "error": {
+      "name_empty": "Device name cannot be empty.",
+      "topic_empty": "MQTT base topic cannot be empty."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WLED MQTT Options",
+        "data": {
+          "mqtt_base_topic": "MQTT Base Topic",
+          "effects_raw": "Effect List (one per line)"
+        }
+      }
+    }
+  }
+}
