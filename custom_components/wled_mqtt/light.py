@@ -1,6 +1,7 @@
 """WLED MQTT Light platform."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -150,6 +151,16 @@ class WledMqttLight(LightEntity):
             await mqtt.async_subscribe(self.hass, self._availability_topic, availability_received, 0),
         ]
 
+        # Request WLED to re-publish its current state so HA reflects reality
+        # after a restart. The "v=1" payload triggers WLED to broadcast all
+        # state topics immediately. We delay briefly to ensure subscriptions
+        # are active before the response arrives.
+        async def _request_state() -> None:
+            await asyncio.sleep(2)
+            await mqtt.async_publish(self.hass, self._effect_cmd_topic, "v=1", 0, False)
+
+        self.hass.async_create_task(_request_state())
+
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from MQTT topics."""
         for unsub in getattr(self, "_subscriptions", []):
@@ -161,7 +172,7 @@ class WledMqttLight(LightEntity):
         if ATTR_RGB_COLOR in kwargs:
             r, g, b = kwargs[ATTR_RGB_COLOR]
             hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            await mqtt.async_publish(self.hass, self._color_cmd_topic, hex_color, 0, False)
+            await mqtt.async_publish(self.hass, self._color_cmd_topic, hex_color, 0, True)
             self._rgb = (r, g, b)
 
         # Handle effect
@@ -176,13 +187,13 @@ class WledMqttLight(LightEntity):
 
         # Handle brightness / turn on
         brightness = kwargs.get(ATTR_BRIGHTNESS, self._brightness if self._is_on else 255)
-        await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, False)
+        await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, True)
         self._brightness = brightness
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
-        await mqtt.async_publish(self.hass, self._cmd_topic, "0", 0, False)
+        await mqtt.async_publish(self.hass, self._cmd_topic, "0", 0, True)
         self._is_on = False
         self.async_write_ha_state()
