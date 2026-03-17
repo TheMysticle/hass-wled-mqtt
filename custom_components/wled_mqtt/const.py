@@ -6,6 +6,13 @@ DOMAIN = "wled_mqtt"
 CONF_DEVICE_NAME = "device_name"
 CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
 CONF_EFFECT_LIST = "effect_list"
+CONF_HOST = "host"
+CONF_NUM_SEGMENTS = "num_segments"
+CONF_DETECT_PRESETS = "detect_presets"
+
+# Defaults
+DEFAULT_NUM_SEGMENTS = 1
+DEFAULT_DETECT_PRESETS = True
 
 # WLED built-in effect IDs (numeric) with friendly names
 # Users can extend this list via config flow

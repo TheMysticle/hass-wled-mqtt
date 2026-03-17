@@ -5,7 +5,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 DOMAIN = "wled_mqtt"
-PLATFORMS = ["light"]
+PLATFORMS = ["light", "select"]
+
+
+def get_config(entry: ConfigEntry) -> dict:
+    """Return effective config, with options overriding data.
+
+    HA stores initial values in entry.data and user edits in entry.options.
+    They are never merged automatically, so we do it here. options wins on
+    every key it contains, falling back to data for anything not yet edited.
+    """
+    return {**entry.data, **entry.options}
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

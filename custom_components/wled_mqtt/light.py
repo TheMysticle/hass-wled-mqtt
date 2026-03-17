@@ -19,6 +19,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import get_config
 from .const import CONF_DEVICE_NAME, CONF_EFFECT_LIST, CONF_MQTT_BASE_TOPIC, DEFAULT_EFFECT_LIST, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up WLED MQTT light from a config entry."""
-    data = config_entry.data
+    data = get_config(config_entry)
     name = data[CONF_DEVICE_NAME]
     base_topic = data[CONF_MQTT_BASE_TOPIC]
     effect_list = data.get(CONF_EFFECT_LIST, DEFAULT_EFFECT_LIST)
