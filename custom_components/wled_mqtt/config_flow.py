@@ -10,6 +10,8 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
+from . import get_config
+
 from .const import (
     CONF_DEVICE_NAME,
     CONF_EFFECT_LIST,
@@ -27,7 +29,7 @@ STEP_USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DEVICE_NAME): str,
         vol.Required(CONF_MQTT_BASE_TOPIC): str,
-        vol.Optional(CONF_HOST, default=""): str,
+        vol.Required(CONF_HOST, default=""): str,
         vol.Optional(CONF_NUM_SEGMENTS, default=DEFAULT_NUM_SEGMENTS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=16)
         ),
@@ -128,26 +130,29 @@ class WledMqttOptionsFlow(config_entries.OptionsFlow):
                 },
             )
 
-        current_effects = self._config_entry.data.get(CONF_EFFECT_LIST, DEFAULT_EFFECT_LIST)
+        # Use get_config() so options values (previously saved edits) are shown
+        # as the defaults rather than the original setup values from entry.data
+        cfg = get_config(self._config_entry)
+        current_effects = cfg.get(CONF_EFFECT_LIST, DEFAULT_EFFECT_LIST)
         effects_str = "\n".join(current_effects)
 
         schema = vol.Schema(
             {
                 vol.Required(
                     CONF_MQTT_BASE_TOPIC,
-                    default=self._config_entry.data.get(CONF_MQTT_BASE_TOPIC, ""),
+                    default=cfg.get(CONF_MQTT_BASE_TOPIC, ""),
                 ): str,
                 vol.Optional(
                     CONF_HOST,
-                    default=self._config_entry.data.get(CONF_HOST, ""),
+                    default=cfg.get(CONF_HOST, ""),
                 ): str,
                 vol.Optional(
                     CONF_NUM_SEGMENTS,
-                    default=self._config_entry.data.get(CONF_NUM_SEGMENTS, DEFAULT_NUM_SEGMENTS),
+                    default=cfg.get(CONF_NUM_SEGMENTS, DEFAULT_NUM_SEGMENTS),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=16)),
                 vol.Optional(
                     CONF_DETECT_PRESETS,
-                    default=self._config_entry.data.get(CONF_DETECT_PRESETS, DEFAULT_DETECT_PRESETS),
+                    default=cfg.get(CONF_DETECT_PRESETS, DEFAULT_DETECT_PRESETS),
                 ): bool,
                 vol.Optional(
                     "effects_raw",

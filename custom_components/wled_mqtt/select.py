@@ -42,7 +42,7 @@ async def async_setup_entry(
     base_topic = data[CONF_MQTT_BASE_TOPIC]
     num_segments = data.get(CONF_NUM_SEGMENTS, DEFAULT_NUM_SEGMENTS)
     detect_presets = data.get(CONF_DETECT_PRESETS, DEFAULT_DETECT_PRESETS)
-    host = data.get(CONF_HOST, "").strip()
+    host = data.get(CONF_HOST, "")
 
     entities: list[SelectEntity] = []
     segment_entity: WledSegmentSelect | None = None
@@ -184,7 +184,7 @@ class WledPresetSelect(SelectEntity):
             try:
                 preset_id = int(str(msg.payload).strip())
             except ValueError:
-                _LOGGER.debug("Could not parse preset state payload: %s", msg.payload)
+                _LOGGER.debug("Could not parse preset state payload: %r", msg.payload)
                 return
 
             # Update current option label
@@ -193,7 +193,7 @@ class WledPresetSelect(SelectEntity):
                     self._attr_current_option = name
                     break
             else:
-                # Preset ID not in our list — clear selection rather than show stale name
+                _LOGGER.debug("WLED ps: preset id=%d not in map, clearing selection", preset_id)
                 self._attr_current_option = None
 
             # Sync segment selector if this preset targets a single segment
@@ -273,6 +273,12 @@ class WledPresetSelect(SelectEntity):
             len(presets), self._host, len(preset_segment)
         )
         self.async_write_ha_state()
+
+        # Now that the preset name->id map is ready, ask WLED to re-publish
+        # its current state. Delay matches the light entity's startup delay so
+        # WLED is ready to respond by the time we ask.
+        await asyncio.sleep(3)
+        await mqtt.async_publish(self.hass, self._cmd_topic, "v=1", 0, False)
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from MQTT."""

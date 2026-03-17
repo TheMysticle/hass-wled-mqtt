@@ -14,8 +14,19 @@ def get_config(entry: ConfigEntry) -> dict:
     HA stores initial values in entry.data and user edits in entry.options.
     They are never merged automatically, so we do it here. options wins on
     every key it contains, falling back to data for anything not yet edited.
+
+    Host is normalised to empty string if it looks invalid so stale garbage
+    values from initial setup don't survive once options have been saved.
     """
-    return {**entry.data, **entry.options}
+    merged = {**entry.data, **entry.options}
+    host = merged.get("host", "")
+    if isinstance(host, str):
+        host = host.strip()
+        # Reject values with no dot or colon — not a valid IP or hostname
+        if host and "." not in host and ":" not in host:
+            host = ""
+    merged["host"] = host
+    return merged
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -23,7 +34,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the integration when options are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
