@@ -10,7 +10,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import CONF_DEVICE_NAME, CONF_EFFECT_LIST, CONF_MQTT_BASE_TOPIC, DEFAULT_EFFECT_LIST, DOMAIN
+from .const import CONF_DEVICE_NAME, CONF_EFFECT_LIST, CONF_MQTT_BASE_TOPIC, CONF_PRESET_LIST, DEFAULT_EFFECT_LIST, DOMAIN
 
 STEP_USER_SCHEMA = vol.Schema(
     {
@@ -55,6 +55,7 @@ class WledMqttConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_DEVICE_NAME: name,
                         CONF_MQTT_BASE_TOPIC: base_topic,
                         CONF_EFFECT_LIST: DEFAULT_EFFECT_LIST,
+                        CONF_PRESET_LIST: [],
                     },
                 )
 
@@ -84,21 +85,45 @@ class WledMqttOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+        cfg = {**self._config_entry.data, **self._config_entry.options}
 
-        current_effects = self._config_entry.data.get(CONF_EFFECT_LIST, DEFAULT_EFFECT_LIST)
+        if user_input is not None:
+            # Parse effects
+            effects_raw = user_input.pop("effects_raw", "")
+            effects_list = [e.strip() for e in effects_raw.split("\n") if e.strip()] or DEFAULT_EFFECT_LIST
+
+            # Parse presets — one per line, format "Name=ID"
+            presets_raw = user_input.pop("presets_raw", "")
+            preset_list = [p.strip() for p in presets_raw.split("\n") if p.strip() and "=" in p]
+
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_MQTT_BASE_TOPIC: user_input.get(CONF_MQTT_BASE_TOPIC, cfg.get(CONF_MQTT_BASE_TOPIC, "")),
+                    CONF_EFFECT_LIST: effects_list,
+                    CONF_PRESET_LIST: preset_list,
+                },
+            )
+
+        current_effects = cfg.get(CONF_EFFECT_LIST, DEFAULT_EFFECT_LIST)
         effects_str = "\n".join(current_effects)
+
+        current_presets = cfg.get(CONF_PRESET_LIST, [])
+        presets_str = "\n".join(current_presets)
 
         schema = vol.Schema(
             {
                 vol.Required(
                     CONF_MQTT_BASE_TOPIC,
-                    default=self._config_entry.data.get(CONF_MQTT_BASE_TOPIC, ""),
+                    default=cfg.get(CONF_MQTT_BASE_TOPIC, ""),
                 ): str,
                 vol.Optional(
                     "effects_raw",
                     default=effects_str,
+                ): str,
+                vol.Optional(
+                    "presets_raw",
+                    default=presets_str,
                 ): str,
             }
         )
