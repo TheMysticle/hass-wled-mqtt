@@ -28,7 +28,11 @@
         "title": "WLED MQTT Options",
         "data": {
           "mqtt_base_topic": "MQTT Base Topic",
-          "effects_raw": "Effect List (one per line)"
+          "effects_raw": "Effect List (one per line)",
+          "presets_raw": "Preset List (comma-separated, format: Name=ID)"
+        },
+        "data_description": {
+          "presets_raw": "Comma-separated list of presets, e.g.: Music Mode=1, Shelves=2, ALL=3"
         }
       }
     }
