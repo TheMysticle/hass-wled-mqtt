@@ -116,7 +116,7 @@ class WledMqttLight(LightEntity):
 
         @callback
         def state_received(msg: mqtt.ReceiveMessage) -> None:
-            """Handle brightness/state updates from wled/<name>/g."""
+            """Handle brightness/state updates from wled/<n>/g."""
             try:
                 val = int(msg.payload)
                 self._is_on = val > 0
@@ -127,7 +127,7 @@ class WledMqttLight(LightEntity):
 
         @callback
         def color_received(msg: mqtt.ReceiveMessage) -> None:
-            """Handle color updates from wled/<name>/c (hex: #RRGGBB)."""
+            """Handle color updates from wled/<n>/c (hex: #RRGGBB)."""
             try:
                 hex_color = str(msg.payload).strip()
                 if hex_color.startswith("#") and len(hex_color) == 7:
@@ -186,9 +186,16 @@ class WledMqttLight(LightEntity):
                 self._effect = effect_name
 
         # Handle brightness / turn on
-        brightness = kwargs.get(ATTR_BRIGHTNESS, self._brightness if self._is_on else 255)
-        await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, True)
-        self._brightness = brightness
+        if ATTR_BRIGHTNESS in kwargs:
+            # Explicit brightness requested — send it directly
+            brightness = kwargs[ATTR_BRIGHTNESS]
+            await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, True)
+            self._brightness = brightness
+        else:
+            # No brightness specified — use T=1 so WLED restores its own
+            # last brightness and preset instead of forcing 255
+            await mqtt.async_publish(self.hass, self._cmd_topic, "T=1", 0, False)
+
         self._is_on = True
         self.async_write_ha_state()
 
