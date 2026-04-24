@@ -69,6 +69,7 @@ class WledMqttLight(LightEntity):
         # State
         self._is_on: bool = False
         self._brightness: int = 255
+        self._last_on_brightness: int = 255  # Track last brightness when light was on
         self._rgb: tuple[int, int, int] = (255, 255, 255)
         self._effect: str | None = None
         self._available: bool = False
@@ -121,6 +122,9 @@ class WledMqttLight(LightEntity):
                 val = int(msg.payload)
                 self._is_on = val > 0
                 self._brightness = val
+                # Track the last non-zero brightness for restoration
+                if val > 0:
+                    self._last_on_brightness = val
             except ValueError:
                 _LOGGER.warning("Unexpected state payload: %s", msg.payload)
             self.async_write_ha_state()
@@ -192,9 +196,10 @@ class WledMqttLight(LightEntity):
             await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, True)
             self._brightness = brightness
         else:
-            # No brightness specified — use T=1 so WLED restores its own
-            # last brightness and preset instead of forcing 255
-            await mqtt.async_publish(self.hass, self._cmd_topic, "T=1", 0, False)
+            # No brightness specified — restore WLED's last known brightness
+            # Use the last brightness when light was on to preserve settings
+            brightness = self._last_on_brightness
+            await mqtt.async_publish(self.hass, self._cmd_topic, str(brightness), 0, True)
 
         self._is_on = True
         self.async_write_ha_state()
