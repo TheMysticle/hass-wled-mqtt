@@ -176,7 +176,7 @@ class WledMqttLight(LightEntity):
         if ATTR_RGB_COLOR in kwargs:
             r, g, b = kwargs[ATTR_RGB_COLOR]
             hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            await mqtt.async_publish(self.hass, self._color_cmd_topic, hex_color, 0, True)
+            await mqtt.async_publish(self.hass, self._color_cmd_topic, hex_color, 0, False)
             self._rgb = (r, g, b)
 
         # Handle effect
